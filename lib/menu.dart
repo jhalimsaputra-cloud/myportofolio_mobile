@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:myportofolio_mobile/models/item_homepage.dart';
 import 'package:myportofolio_mobile/widgets/info_card.dart';
 import 'package:myportofolio_mobile/widgets/item_card.dart';
+import 'package:myportofolio_mobile/widgets/profile_sheet.dart';
 
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
@@ -25,6 +26,16 @@ class MyHomePage extends StatelessWidget {
       );
   }
 
+  void _showProfile(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (context) =>
+          const ProfileSheet(name: _name, className: _className),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
@@ -37,6 +48,13 @@ class MyHomePage extends StatelessWidget {
         ),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
+        actions: [
+          IconButton(
+            tooltip: 'Profil',
+            onPressed: () => _showProfile(context),
+            icon: const Icon(Icons.person_outline),
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(
