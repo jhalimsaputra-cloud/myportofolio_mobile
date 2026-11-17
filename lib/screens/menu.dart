@@ -1,8 +1,9 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/item_homepage.dart';
 import 'package:myportofolio_mobile/widgets/info_card.dart';
-import 'package:myportofolio_mobile/widgets/item_card.dart';
+import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 import 'package:myportofolio_mobile/widgets/profile_sheet.dart';
+import 'package:myportofolio_mobile/widgets/project_card.dart';
 
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
@@ -17,15 +18,6 @@ class MyHomePage extends StatelessWidget {
     ItemHomepage('Tambah Proyek', Icons.add_circle, Color(0xFF166534)),
     ItemHomepage('Logout', Icons.logout, Color(0xFF991B1B)),
   ];
-
-  void _showItemMessage(BuildContext context, ItemHomepage item) {
-    ScaffoldMessenger.of(context)
-      ..removeCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(content: Text('Kamu telah menekan tombol ${item.name}!')),
-      );
-  }
-
   void _showProfile(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -56,6 +48,7 @@ class MyHomePage extends StatelessWidget {
           ),
         ],
       ),
+      drawer: const LeftDrawer(),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -80,13 +73,7 @@ class MyHomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _CardGroup(
-                    children: [
-                      for (final item in _items)
-                        ItemCard(
-                          item: item,
-                          onTap: () => _showItemMessage(context, item),
-                        ),
-                    ],
+                    children: [for (final item in _items) ItemCard(item: item)],
                   ),
                 ],
               ),
