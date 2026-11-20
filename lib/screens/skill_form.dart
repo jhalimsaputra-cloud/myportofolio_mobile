@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/skill_image_url.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
@@ -20,14 +22,32 @@ class _SkillFormPageState extends State<SkillFormPage> {
   final _name = TextEditingController();
   final _description = TextEditingController();
   final _imageUrl = TextEditingController();
+  Timer? _previewTimer;
+  Uri? _livePreviewUri;
   String? _skillType;
 
   @override
   void dispose() {
+    _previewTimer?.cancel();
     _name.dispose();
     _description.dispose();
     _imageUrl.dispose();
     super.dispose();
+  }
+
+  void _updateImagePreview(String value) {
+    _previewTimer?.cancel();
+    final previewUri = skillImagePreviewUri(value);
+    if (previewUri == _livePreviewUri) return;
+
+    if (previewUri == null) {
+      setState(() => _livePreviewUri = null);
+      return;
+    }
+
+    _previewTimer = Timer(const Duration(milliseconds: 350), () {
+      setState(() => _livePreviewUri = previewUri);
+    });
   }
 
   void _showSummary() {
@@ -171,6 +191,7 @@ class _SkillFormPageState extends State<SkillFormPage> {
                       ),
                       keyboardType: TextInputType.url,
                       autocorrect: false,
+                      onChanged: _updateImagePreview,
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) return null;
                         return skillImagePreviewUri(value) == null
@@ -178,6 +199,13 @@ class _SkillFormPageState extends State<SkillFormPage> {
                             : null;
                       },
                     ),
+                    if (_livePreviewUri != null) ...[
+                      const SizedBox(height: 16),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: SkillImage(previewUri: _livePreviewUri),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     FilledButton(
                       onPressed: _showSummary,
