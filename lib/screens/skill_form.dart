@@ -51,7 +51,8 @@ class _SkillFormPageState extends State<SkillFormPage> {
   }
 
   void _showSummary() {
-    if (_formKey.currentState?.validate() != true) return;
+    final form = _formKey.currentState;
+    if (form == null || !form.validate()) return;
 
     FocusScope.of(context).unfocus();
     final name = _name.text.trim();
@@ -59,10 +60,20 @@ class _SkillFormPageState extends State<SkillFormPage> {
     final imageUrl = _imageUrl.text.trim();
     final typeLabel = _typeLabels[_skillType]!;
 
+    form.reset();
+    _name.clear();
+    _description.clear();
+    _imageUrl.clear();
+    _previewTimer?.cancel();
+    setState(() {
+      _skillType = null;
+      _livePreviewUri = null;
+    });
+
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Ringkasan Skill'),
+        title: const Text('Skill telah Ditambahkan'),
         scrollable: true,
         content: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -105,16 +116,6 @@ class _SkillFormPageState extends State<SkillFormPage> {
         title: const Text('Tambah Skill'),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
-        leading: const BackButton(),
-        actions: [
-          Builder(
-            builder: (context) => IconButton(
-              tooltip: 'Buka menu navigasi',
-              onPressed: () => Scaffold.of(context).openDrawer(),
-              icon: const Icon(Icons.menu),
-            ),
-          ),
-        ],
       ),
       drawer: const LeftDrawer(isSkillForm: true),
       body: SafeArea(

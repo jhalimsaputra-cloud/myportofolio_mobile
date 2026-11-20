@@ -102,7 +102,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byType(SkillFormPage), findsOneWidget);
 
-    await tester.tap(find.byTooltip('Buka menu navigasi'));
+    await tester.tap(find.byType(DrawerButton));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Home'));
     await tester.pumpAndSettle();
@@ -149,22 +149,32 @@ void main() {
       findsOneWidget,
     );
     expect(find.byType(AlertDialog), findsNothing);
+    expect(
+      tester.widget<TextFormField>(imageUrl).controller!.text,
+      'ftp://example.com/flutter.png',
+    );
 
     await tester.ensureVisible(imageUrl);
-    await tester.enterText(imageUrl, '');
+    const validImageUrl = 'https://example.com/flutter.png';
+    await tester.enterText(imageUrl, validImageUrl);
     await tester.ensureVisible(save);
     await tester.tap(save);
     await tester.pumpAndSettle();
 
-    expect(find.text('Ringkasan Skill'), findsOneWidget);
+    expect(find.text('Skill telah Ditambahkan'), findsOneWidget);
     expect(find.text('Nama Skill: Flutter'), findsOneWidget);
     expect(find.text('Tipe Skill: Software Development'), findsOneWidget);
     expect(find.text('Deskripsi: Membuat aplikasi mobile'), findsOneWidget);
-    expect(find.text('URL Gambar: Tidak diisi'), findsOneWidget);
+    expect(find.text('URL Gambar: $validImageUrl'), findsOneWidget);
     await tester.tap(find.text('Tutup'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsNothing);
     expect(find.byType(SkillFormPage), findsOneWidget);
+    for (final field in tester.widgetList<TextFormField>(fields)) {
+      expect(field.controller!.text, isEmpty);
+    }
+    expect(tester.state<FormFieldState<String>>(skillType).value, isNull);
+    expect(find.byType(SkillImage), findsNothing);
   });
 
   testWidgets('previews a shared Drive URL and handles a failed image load', (
