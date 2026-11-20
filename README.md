@@ -1,6 +1,6 @@
 # MyPortfolio Mobile
 
-Aplikasi Flutter untuk proyek portofolio pribadi pada mata kuliah Pemrograman Berbasis Platform (PBP). Halaman utama menampilkan kartu identitas dan tiga aksi, yaitu **Lihat Proyek**, **Tambah Proyek**, dan **Logout**. Setiap aksi menampilkan pesan `SnackBar` saat ditekan. Tombol **Profil** di AppBar membuka ringkasan nama dan kelas yang bisa disalin.
+Aplikasi Flutter untuk proyek portofolio pribadi pada mata kuliah Pemrograman Berbasis Platform (PBP). Halaman utama menampilkan kartu identitas dan aksi **Lihat Proyek**, **Tambah Proyek**, **Tambah Skill**, serta **Logout**. Kartu **Tambah Skill** dan opsi **Add Skill** di drawer membuka formulir yang menampilkan ringkasan isian dan pratinjau gambar opsional. Tombol **Profil** di AppBar membuka ringkasan nama dan kelas yang bisa disalin.
 
 ## Prasyarat
 
@@ -31,7 +31,9 @@ flutter analyze
 flutter test
 ```
 
-Target analisis adalah `No issues found!`. Tes widget memeriksa tiga kartu identitas, teks `SnackBar` untuk setiap aksi, dan perilaku gulir pada layar sempit. Untuk mencoba fitur Profil, buka panel, tekan **Salin profil**, lalu tempel teks ke editor dan cocokkan nama serta kelasnya.
+Target analisis adalah `No issues found!`. Tes widget memeriksa tiga kartu identitas, pesan `SnackBar` untuk aksi proyek dan logout, serta gulir halaman utama pada lebar 320 piksel logis. Untuk Tugas 8, tes mencakup pembukaan form dari kartu dan drawer, navigasi kembali lewat Back dan **Home**, penolakan input wajib yang kosong, serta penampilan dan penutupan dialog ringkasan. Untuk mencoba fitur Profil, buka panel, tekan **Salin profil**, lalu tempel teks ke editor dan cocokkan nama serta kelasnya.
+
+Untuk mencoba formulir di Chrome, buka **Tambah Skill** dari kartu dan **Add Skill** dari drawer. Uji tombol **Simpan** dengan kolom wajib kosong, lalu isi nama, tipe, dan deskripsi sampai dialog ringkasan tampil. Coba URL yang tidak valid dan tautan berkas gambar Google Drive yang dapat diakses. Gunakan opsi **Home** di drawer untuk kembali ke halaman utama. Pada viewport sempit, pastikan tombol **Simpan** dapat dijangkau dengan menggulir. Ulangi cek ini di ponsel atau emulator saat papan ketik layar terbuka.
 
 Jika tes gagal membaca aset shader yang dihasilkan Flutter, misalnya `ink_sparkle.frag`, bangun ulang cache lokal dengan `flutter clean`, lalu jalankan `flutter pub get` dan `flutter test` kembali.
 
@@ -50,6 +52,9 @@ Jika tes gagal membaca aset shader yang dihasilkan Flutter, misalnya `ink_sparkl
 | Tugas 7 · Menu | Memberi warna berbeda pada kartu aksi dan menyesuaikan susunan kartu dengan lebar layar. | [c2dc807](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/commit/c2dc807ed655dc595163fbe70a4a97bd26261472) |
 | Tugas 7 · Tes | Menguji identitas, tiga pesan `SnackBar`, dan tata letak layar sempit. | [183444d](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/commit/183444d4b871f9f5deb6373838b6f4f9df935766) |
 | Tugas 7 · Profil | Menambahkan panel ringkasan dan aksi untuk menyalin nama serta kelas. | [e202982](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/commit/e20298281e8e8a823a2de864747e8275e6c790cb) |
+| Tutorial 09 · Navigation, Layouts, Forms, and Input Elements | Menambahkan drawer dan formulir Tambah Proyek. | [9ec33bd](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/commit/9ec33bd) |
+| Tugas 8 · Formulir skill | Menambahkan input tervalidasi, dialog ringkasan, dan pratinjau gambar opsional. | [6743b86](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/commit/6743b86) |
+| Tugas 8 · Navigasi dan tes | Menghubungkan kartu dan drawer ke formulir skill serta menguji navigasi, validasi, dan dialog. | [5037ac5](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/commit/5037ac5) |
 
 ### Tugas 7
 
@@ -95,3 +100,46 @@ Berikut adalah detail penyesuaian dan perbaikan yang saya lakukan terhadap outpu
 
 Link percakapan:
 https://share.gemini.google/wI7afNYNyjDF
+
+### Tugas 8
+
+1. **Navigasi antarlayar.** `Navigator.push()` menambahkan rute baru di atas rute aktif sehingga tombol Back bisa kembali ke halaman sebelumnya. Kartu **Tambah Skill** memakai metode ini untuk membuka `SkillFormPage`. `Navigator.pushReplacement()` mengganti rute aktif dengan rute baru. Drawer menggunakannya saat berpindah dari satu formulir ke formulir lain, sehingga hanya satu formulir berada di atas halaman utama. `Navigator.pop()` menutup rute aktif atau menangani riwayat lokal rute, seperti menutup drawer yang terbuka. Saat **Home** dipilih, `pop()` menutup drawer dan `popUntil((route) => route.isFirst)` kembali ke halaman utama.
+
+2. **Struktur dan tema halaman.** `Scaffold` menyediakan kerangka yang sama untuk menempatkan `AppBar`, drawer, dan konten. `AppBar` menampilkan judul dan tombol yang sesuai dengan halaman. Komponen `LeftDrawer` dipakai di halaman utama dan kedua formulir sehingga menu **Home**, **Add Project**, dan **Add Skill** tersedia dari ketiganya. AppBar halaman utama dan formulir skill sama-sama menggunakan `Theme.of(context).colorScheme.primary` untuk latar dan `onPrimary` untuk teks serta ikon.
+
+3. **Tata letak formulir.** `Column` menata nama, tipe, deskripsi, URL gambar, dan tombol **Simpan** secara vertikal. `Padding` menjaga jarak dari tepi, `SizedBox` memberi jarak antarinput, dan `ConstrainedBox` membatasi lebar formulir hingga 560 piksel logis agar nyaman dibaca pada layar lebar. `SafeArea` memberi ruang dari area sistem. `SingleChildScrollView` memungkinkan pengguna menggulir ke input dan tombol Simpan ketika layar sempit atau ruang vertikal berkurang karena papan ketik.
+
+4. **Validasi sebelum menampilkan ringkasan.** `GlobalKey<FormState>` memberi handler tombol **Simpan** akses ke state formulir. `validate()` menjalankan setiap `validator` dan menampilkan pesan kesalahan pada kolom terkait. Dialog ringkasan baru tampil setelah semua input lolos. Contohnya, URL gambar `ftp://example.com/gambar.png` ditolak karena formulir hanya menerima skema HTTP atau HTTPS. `TextInputType.url` menyesuaikan papan ketik untuk pengetikan URL, tetapi pengguna masih bisa menempel nilai yang tidak valid. Karena itu, pemeriksaan format tetap dilakukan oleh `validator`.
+
+#### 🤖 AI Disclosure
+
+Dalam pengerjaan tugas ini, saya menggunakan bantuan **Gemini Hydrogen** untuk menelaah PDF Tugas 8 dan kode proyek, mengusulkan struktur formulir skill, menulis draf awal fungsi normalisasi tautan gambar (*shared link*), membuat *widget* formulir beserta *live preview*, serta menyusun draf dokumentasi. Saya memberikan berkas spesifikasi tugas dan kode proyek sebagai acuan, menetapkan cakupan tiap tahap, serta memeriksa dan menguji hasil keluarannya di terminal lokal.
+
+Berikut adalah detail penyesuaian dan perbaikan yang saya lakukan dengan bantuan AI:
+
+1. **Normalisasi tautan Google Drive dan validasi format URL**
+   - **Output AI:** Draf awal AI mengubah tautan Google Drive menjadi format `https://drive.google.com/uc?export=view&id=<FILE_ID>`, mendukung beberapa penyedia lain (GitHub dan Dropbox), dan hanya mengenali pola path `/file/d/<ID>` atau parameter `?id=`. Selain itu, kolom URL gambar diwajibkan diisi dan tidak memeriksa parameter `resourcekey` maupun karakter spasi di dalam URL.
+   - **Perbaikan:** Saya memisahkan logika ini ke `lib/models/skill_image_url.dart` melalui fungsi `skillImagePreviewUri()`. Saya menggunakan endpoint `/thumbnail?id=<ID>&sz=w800` untuk pratinjau gambar Google Drive, menambahkan dukungan path `/open`, `/uc`, dan `/thumbnail`, mempertahankan parameter `resourcekey` jika tersedia, menolak spasi atau *userinfo* pada URI, serta menjadikan kolom URL gambar bersifat opsional dan tetap memvalidasi formatnya saat diisi.
+
+2. **Optimasi *live preview* dengan *debouncing* dan pemisahan komponen gambar**
+   - **Output AI:** AI merancang kartu pratinjau langsung (*Live Preview Card*) yang memanggil `setState()` setiap kali karakter pada kolom URL berubah (`onChanged`), serta menuliskan pemuatan `Image.network` secara langsung di dalam `skill_form.dart`.
+   - **Perbaikan:** Saya mengekstrak tampilan gambar menjadi widget tersendiri di `lib/widgets/skill_image.dart` yang dilengkapi `CircularProgressIndicator` pada `frameBuilder`, `WebHtmlElementStrategy.fallback` untuk kompatibilitas browser, serta `semanticLabel` untuk aksesibilitas. Pada `SkillFormPage`, saya menggunakan `Timer` (*debounce* 350 milidetik) pada `_updateImagePreview()` agar pemuatan gambar menunggu jeda setelah pengguna mengetik URL. Timer dibatalkan saat URL berubah lagi dan di `dispose()`.
+
+3. **Struktur `AppBar` dengan tombol kembali dan akses *drawer* bersamaan**
+   - **Output AI:** Pada `SkillFormPage`, AI menggunakan `AppBar` standar tanpa konfigurasi `leading` dan `actions` khusus. Saat `Scaffold` memiliki *drawer*, `AppBar` memprioritaskan tombol *drawer* pada posisi `leading` otomatis, termasuk ketika halaman dibuka melalui `Navigator.push()` dari kartu utama.
+   - **Perbaikan:** Saya menetapkan `leading: const BackButton()` dan menyertakan `IconButton` dengan ikon menu (`Scaffold.of(context).openDrawer()`) di bagian `actions` pada `AppBar` halaman formulir. Dengan demikian, pengguna tetap memiliki tombol kembali eksplisit maupun akses langsung ke `LeftDrawer` untuk kembali ke **Home** atau berpindah ke **Add Project** dalam satu layar yang sama.
+
+4. **Perilaku navigasi *drawer* dan interaksi dialog ringkasan**
+   - **Output AI:** AI menyarankan penggunaan `Navigator.pushReplacement()` secara seragam pada seluruh item di *drawer* dan menggunakan widget `Text` biasa di dalam `AlertDialog` ringkasan.
+   - **Perbaikan:** Saya menggunakan parameter `isProjectForm` dan `isSkillForm` pada `lib/widgets/left_drawer.dart` agar perpindahan antarformulir memakai `pushReplacement()`, pembukaan formulir dari halaman utama memakai `push()`, dan pilihan halaman yang sedang aktif cukup menutup *drawer*. Opsi **Home** menutup *drawer* dan memanggil `popUntil((route) => route.isFirst)`. Pada `AlertDialog` di `skill_form.dart`, saya menggunakan `SelectableText` untuk nama, deskripsi, dan URL gambar agar dapat disalin, memanggil `FocusScope.of(context).unfocus()` sebelum dialog tampil, dan menjaga dialog tetap *scrollable*.
+
+5. **Penyederhanaan model, tombol aksi, dan aturan validasi input**
+   - **Output AI:** Draf AI menyertakan model `SkillItem` dengan penyimpanan daftar statis sementara, menetapkan nilai awal otomatis pada `DropdownButtonFormField`, memakai `.length` dengan batas 50 karakter untuk nama, serta menempatkan dua tombol berdampingan (**Reset** dan **Simpan**).
+   - **Perbaikan:** Saya memilih untuk menghapus penyimpanan daftar sementara dan tombol **Reset** agar sesuai dengan cakupan Tugas 8, serta menggunakan satu tombol `FilledButton` penuh bertuliskan **Simpan**. Saya membiarkan pilihan awal `DropdownButtonFormField` kosong (`null`) dengan opsi *Software Development* dan *Systems & Architecture* disertai `validator` agar pengguna wajib memilih tipe. Saya menggunakan `name.runes.length > 100` untuk membatasi nama hingga 100 Unicode *code points*, serta membungkus formulir dalam `ConstrainedBox` dengan `maxWidth: 560` di dalam `SingleChildScrollView` yang memakai `keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag`.
+
+6. **Penambahan skenario pengujian otomatis (*widget test*)**
+   - **Output AI:** Draf awal dari Gemini belum menyertakan kode pengujian otomatis untuk alur navigasi, validasi, maupun pratinjau gambar pada Tugas 8.
+   - **Perbaikan:** Saya menambahkan lima skenario pengujian baru di `test/widget_test.dart`. Skenario ini memverifikasi pembukaan formulir dari kartu utama beserta tombol Back, navigasi dari *drawer* kembali ke **Home**, penolakan input wajib kosong dan skema URL `ftp://` serta penampilan dialog ringkasan untuk input yang valid, perilaku *debounce* 350 milidetik dan *fallback* dengan simulasi kegagalan pemuatan gambar Drive, serta keterjangkauan tombol **Simpan** saat papan ketik disimulasikan terbuka pada layar selebar 320 piksel. Saya menjalankan `flutter analyze` dan `flutter test` di terminal lokal. Analisis tidak menemukan masalah dan semua 10 *widget test* lolos.
+
+Link percakapan:
+https://share.gemini.google/bJU4orpUzVVn
