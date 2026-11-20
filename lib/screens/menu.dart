@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/item_homepage.dart';
+import 'package:myportofolio_mobile/screens/skill_form.dart';
 import 'package:myportofolio_mobile/widgets/info_card.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 import 'package:myportofolio_mobile/widgets/profile_sheet.dart';
@@ -13,11 +14,34 @@ class MyHomePage extends StatelessWidget {
   static const _className = 'PBP B';
 
   // Dark backgrounds keep the white icon and label readable on every card.
-  static const _items = [
-    ItemHomepage('Lihat Proyek', Icons.folder, Color(0xFF1E40AF)),
-    ItemHomepage('Tambah Proyek', Icons.add_circle, Color(0xFF166534)),
-    ItemHomepage('Logout', Icons.logout, Color(0xFF991B1B)),
-  ];
+  static const _viewProjects = ItemHomepage(
+    'Lihat Proyek',
+    Icons.folder,
+    Color(0xFF1E40AF),
+  );
+  static const _addProject = ItemHomepage(
+    'Tambah Proyek',
+    Icons.add_circle,
+    Color(0xFF166534),
+  );
+  static const _addSkill = ItemHomepage(
+    'Tambah Skill',
+    Icons.psychology_outlined,
+    Color(0xFF5B21B6),
+  );
+  static const _logout = ItemHomepage(
+    'Logout',
+    Icons.logout,
+    Color(0xFF991B1B),
+  );
+
+  void _openSkillForm(BuildContext context) {
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const SkillFormPage()),
+    );
+  }
+
   void _showProfile(BuildContext context) {
     showModalBottomSheet<void>(
       context: context,
@@ -73,7 +97,15 @@ class MyHomePage extends StatelessWidget {
                   ),
                   const SizedBox(height: 16),
                   _CardGroup(
-                    children: [for (final item in _items) ItemCard(item: item)],
+                    children: [
+                      const ItemCard(item: _viewProjects),
+                      const ItemCard(item: _addProject),
+                      ItemCard(
+                        item: _addSkill,
+                        onTap: () => _openSkillForm(context),
+                      ),
+                      const ItemCard(item: _logout),
+                    ],
                   ),
                 ],
               ),

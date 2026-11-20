@@ -96,7 +96,7 @@ class _SkillFormPageState extends State<SkillFormPage> {
           ),
         ],
       ),
-      drawer: const LeftDrawer(),
+      drawer: const LeftDrawer(isSkillForm: true),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
