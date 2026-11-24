@@ -1,6 +1,9 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
+import 'package:myportofolio_mobile/services/auth_state.dart';
+import 'package:myportofolio_mobile/widgets/auth_guard.dart';
+import 'package:provider/provider.dart';
 
 class LeftDrawer extends StatelessWidget {
   const LeftDrawer({
@@ -12,14 +15,19 @@ class LeftDrawer extends StatelessWidget {
   final bool isProjectForm;
   final bool isSkillForm;
 
-  void _openForm(
+  Future<void> _openForm(
     BuildContext context, {
     required bool isCurrentForm,
     required WidgetBuilder builder,
-  }) {
-    final navigator = Navigator.of(context);
+    bool requiresLogin = false,
+  }) async {
+    final screenContext = Scaffold.of(context).context;
+    final navigator = Navigator.of(screenContext);
     navigator.pop();
     if (isCurrentForm) return;
+
+    if (requiresLogin && !await ensureLoggedIn(screenContext)) return;
+    if (!screenContext.mounted) return;
 
     final route = MaterialPageRoute<void>(builder: builder);
     if (isProjectForm || isSkillForm) {
@@ -31,6 +39,8 @@ class LeftDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isLoggedIn = context.watch<AuthState>().isLoggedIn;
+
     return Drawer(
       child: ListView(
         padding: EdgeInsets.only(bottom: MediaQuery.paddingOf(context).bottom),
@@ -83,6 +93,7 @@ class LeftDrawer extends StatelessWidget {
               context,
               isCurrentForm: isProjectForm,
               builder: (_) => const ProjectFormPage(),
+              requiresLogin: true,
             ),
           ),
           ListTile(
@@ -93,6 +104,19 @@ class LeftDrawer extends StatelessWidget {
               isCurrentForm: isSkillForm,
               builder: (_) => const SkillFormPage(),
             ),
+          ),
+          ListTile(
+            leading: Icon(isLoggedIn ? Icons.logout : Icons.login),
+            title: Text(isLoggedIn ? 'Logout' : 'Login'),
+            onTap: () {
+              final screenContext = Scaffold.of(context).context;
+              Navigator.pop(screenContext);
+              if (isLoggedIn) {
+                logoutAndNotify(screenContext);
+              } else {
+                ensureLoggedIn(screenContext);
+              }
+            },
           ),
         ],
       ),

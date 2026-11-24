@@ -32,14 +32,17 @@ class SkillImage extends StatelessWidget {
                   fit: BoxFit.contain,
                   semanticLabel: 'Gambar skill',
                   webHtmlElementStrategy: WebHtmlElementStrategy.fallback,
-                  frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-                    if (frame != null || wasSynchronouslyLoaded) return child;
-                    return const Center(
-                      child: CircularProgressIndicator(
-                        semanticsLabel: 'Memuat gambar skill',
-                      ),
-                    );
-                  },
+                  frameBuilder:
+                      (context, child, frame, wasSynchronouslyLoaded) {
+                        if (frame != null || wasSynchronouslyLoaded) {
+                          return child;
+                        }
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            semanticsLabel: 'Memuat gambar skill',
+                          ),
+                        );
+                      },
                   errorBuilder: (context, error, stackTrace) => unavailable,
                 ),
         ),

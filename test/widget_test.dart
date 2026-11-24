@@ -1,14 +1,41 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/main.dart';
+import 'package:myportofolio_mobile/screens/login_screen.dart';
+import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
+import 'package:myportofolio_mobile/services/api_client.dart';
 import 'package:myportofolio_mobile/widgets/info_card.dart';
 import 'package:myportofolio_mobile/widgets/project_card.dart';
 import 'package:myportofolio_mobile/widgets/skill_image.dart';
 
+Widget _testApp([MockClient? client]) => MyApp(
+  apiClient: ApiClient(
+    baseUrl: 'http://example.test',
+    client: client ?? MockClient((_) async => http.Response('[]', 200)),
+  ),
+);
+
+Future<void> _submitLogin(WidgetTester tester) async {
+  await tester.enterText(
+    find.widgetWithText(TextFormField, 'Username'),
+    'owner',
+  );
+  await tester.enterText(
+    find.widgetWithText(TextFormField, 'Password'),
+    'password',
+  );
+  await tester.tap(find.widgetWithText(ElevatedButton, 'Login'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('displays the three portfolio identity cards', (tester) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(_testApp());
 
     const identity = {
       'NPM': '2506549386',
@@ -29,22 +56,141 @@ void main() {
     }
   });
 
-  for (final label in ['Lihat Proyek', 'Tambah Proyek', 'Logout']) {
-    testWidgets('shows the exact SnackBar message for $label', (tester) async {
-      await tester.pumpWidget(const MyApp());
-
-      await tester.tap(find.text(label));
-      await tester.pumpAndSettle();
-
-      expect(
-        find.descendant(
-          of: find.byType(SnackBar),
-          matching: find.text('Kamu telah menekan tombol $label!'),
+  testWidgets('retries a public request and refreshes an empty project list', (
+    tester,
+  ) async {
+    var requests = 0;
+    final client = MockClient((request) async {
+      expect(request.method, 'GET');
+      expect(request.url.path, '/api/v1/projects/');
+      expect(request.headers, isNot(contains('authorization')));
+      return switch (++requests) {
+        1 => http.Response('unavailable', 503),
+        2 => http.Response('[]', 200),
+        _ => http.Response(
+          '[{"id":"project-id","title":"Sample project","description":"Description from Django",'
+          '"tech_stack":"Flutter","project_url":"https://example.com/","project_image_url":null}]',
+          200,
         ),
-        findsOneWidget,
-      );
+      };
     });
-  }
+    await tester.pumpWidget(_testApp(client));
+
+    await tester.tap(find.text('Lihat Proyek'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Retry'));
+    await tester.pumpAndSettle();
+    expect(find.text('No projects found.'), findsOneWidget);
+
+    await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 350));
+    await tester.pumpAndSettle();
+    expect(requests, 3);
+    await tester.tap(find.text('Sample project'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Description from Django'), findsOneWidget);
+    expect(find.text('Flutter'), findsOneWidget);
+    expect(find.text('https://example.com/'), findsOneWidget);
+    expect(find.byType(Image), findsNothing);
+  });
+
+  testWidgets('guards the form, creates a project with a token and logs out', (
+    tester,
+  ) async {
+    var projectPosts = 0;
+    var logoutPosts = 0;
+    final client = MockClient((request) async {
+      expect(request.method, 'POST');
+      switch (request.url.path) {
+        case '/api/v1/auth/token/':
+          expect(jsonDecode(request.body), {
+            'username': 'owner',
+            'password': 'password',
+          });
+          return http.Response('{"token":"test-token"}', 200);
+        case '/api/v1/projects/':
+          expect(request.headers['authorization'], 'Token test-token');
+          final project = jsonDecode(request.body) as Map<String, dynamic>;
+          expect(project, {
+            'title': 'New project',
+            'description': 'Description',
+            'tech_stack': 'Flutter',
+            'project_url': 'https://example.com/',
+            'project_image_url': '',
+          });
+          projectPosts++;
+          return http.Response(
+            jsonEncode({'id': 'server-id', ...project}),
+            201,
+          );
+        case '/api/v1/auth/logout/':
+          expect(request.headers['authorization'], 'Token test-token');
+          logoutPosts++;
+          return http.Response('', 204);
+        default:
+          fail('Unexpected request: ${request.url}');
+      }
+    });
+
+    await tester.pumpWidget(_testApp(client));
+    await tester.tap(find.text('Tambah Proyek'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginScreen), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.byType(ProjectFormPage), findsNothing);
+
+    await tester.tap(find.byType(DrawerButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Project'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginScreen), findsOneWidget);
+    await _submitLogin(tester);
+    expect(find.byType(ProjectFormPage), findsOneWidget);
+
+    final title = find.widgetWithText(TextFormField, 'Title');
+    final description = find.widgetWithText(TextFormField, 'Description');
+    final techStack = find.widgetWithText(TextFormField, 'Tech Stack');
+    final url = find.widgetWithText(TextFormField, 'Project URL');
+    final save = find.text('Save');
+    final formScroll = find.byType(Scrollable).first;
+    await tester.enterText(title, 'New project');
+    await tester.enterText(description, 'Description');
+    await tester.enterText(techStack, 'Flutter');
+    await tester.enterText(url, 'example.com');
+    await tester.scrollUntilVisible(save, 100, scrollable: formScroll);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(
+      find.text('Masukkan URL yang dimulai dengan http:// atau https://.'),
+      findsOneWidget,
+    );
+    expect(projectPosts, 0);
+
+    await tester.enterText(url, 'https://example.com/');
+    await tester.scrollUntilVisible(save, 100, scrollable: formScroll);
+    await tester.tap(save);
+    await tester.pumpAndSettle();
+    expect(projectPosts, 1);
+    expect(find.text('Proyek berhasil ditambahkan!'), findsOneWidget);
+    await tester.tap(find.text('OK'));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Tambah Proyek'));
+    await tester.pumpAndSettle();
+    expect(find.byType(LoginScreen), findsNothing);
+    expect(find.byType(ProjectFormPage), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Logout'));
+    await tester.pumpAndSettle();
+    expect(logoutPosts, 1);
+    expect(find.text('Kamu sudah logout.'), findsOneWidget);
+    expect(find.text('Login'), findsOneWidget);
+  });
 
   testWidgets('stacks cards and scrolls at a width of 320', (tester) async {
     tester.view.devicePixelRatio = 1;
@@ -54,7 +200,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
 
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(_testApp());
 
     for (final cardType in [InfoCard, ItemCard]) {
       final cards = find.byType(cardType);
@@ -69,19 +215,19 @@ void main() {
       }
     }
 
-    final logout = find.text('Logout');
-    expect(logout.hitTestable(), findsNothing);
-    await tester.ensureVisible(logout);
+    final login = find.text('Login');
+    expect(login.hitTestable(), findsNothing);
+    await tester.ensureVisible(login);
     await tester.pumpAndSettle();
 
-    expect(logout.hitTestable(), findsOneWidget);
+    expect(login.hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
   testWidgets('opens the skill form from its card and handles back', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(_testApp());
     await tester.tap(find.text('Tambah Skill'));
     await tester.pumpAndSettle();
     expect(find.byType(SkillFormPage), findsOneWidget);
@@ -95,7 +241,7 @@ void main() {
   testWidgets('opens the skill form from the drawer and returns Home', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(_testApp());
     tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add Skill'));
@@ -113,7 +259,7 @@ void main() {
   testWidgets('validates the skill form before showing its summary', (
     tester,
   ) async {
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(_testApp());
     await tester.tap(find.text('Tambah Skill'));
     await tester.pumpAndSettle();
 

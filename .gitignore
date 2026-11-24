@@ -33,6 +33,9 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Generated JSON serializers
+*.g.dart
+
 # Symbolication related
 app.*.symbols
 

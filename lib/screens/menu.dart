@@ -1,10 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/item_homepage.dart';
+import 'package:myportofolio_mobile/screens/project_form.dart';
+import 'package:myportofolio_mobile/screens/project_list_screen.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
+import 'package:myportofolio_mobile/services/auth_state.dart';
+import 'package:myportofolio_mobile/widgets/auth_guard.dart';
 import 'package:myportofolio_mobile/widgets/info_card.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 import 'package:myportofolio_mobile/widgets/profile_sheet.dart';
 import 'package:myportofolio_mobile/widgets/project_card.dart';
+import 'package:provider/provider.dart';
 
 class MyHomePage extends StatelessWidget {
   const MyHomePage({super.key});
@@ -34,6 +39,15 @@ class MyHomePage extends StatelessWidget {
     Icons.logout,
     Color(0xFF991B1B),
   );
+  static const _login = ItemHomepage('Login', Icons.login, Color(0xFF374151));
+
+  Future<void> _openProjectForm(BuildContext context) async {
+    if (!await ensureLoggedIn(context) || !context.mounted) return;
+    Navigator.push<void>(
+      context,
+      MaterialPageRoute<void>(builder: (_) => const ProjectFormPage()),
+    );
+  }
 
   void _openSkillForm(BuildContext context) {
     Navigator.push<void>(
@@ -55,6 +69,7 @@ class MyHomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLoggedIn = context.watch<AuthState>().isLoggedIn;
 
     return Scaffold(
       appBar: AppBar(
@@ -98,13 +113,33 @@ class MyHomePage extends StatelessWidget {
                   const SizedBox(height: 16),
                   _CardGroup(
                     children: [
-                      const ItemCard(item: _viewProjects),
-                      const ItemCard(item: _addProject),
+                      ItemCard(
+                        item: _viewProjects,
+                        onTap: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const ProjectListScreen(),
+                          ),
+                        ),
+                      ),
+                      ItemCard(
+                        item: _addProject,
+                        onTap: () => _openProjectForm(context),
+                      ),
                       ItemCard(
                         item: _addSkill,
                         onTap: () => _openSkillForm(context),
                       ),
-                      const ItemCard(item: _logout),
+                      ItemCard(
+                        item: isLoggedIn ? _logout : _login,
+                        onTap: () {
+                          if (isLoggedIn) {
+                            logoutAndNotify(context);
+                          } else {
+                            ensureLoggedIn(context);
+                          }
+                        },
+                      ),
                     ],
                   ),
                 ],

@@ -1,12 +1,11 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/item_homepage.dart';
-import 'package:myportofolio_mobile/screens/project_form.dart';
 
 class ItemCard extends StatelessWidget {
-  const ItemCard({super.key, required this.item, this.onTap});
+  const ItemCard({super.key, required this.item, required this.onTap});
 
   final ItemHomepage item;
-  final VoidCallback? onTap;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -15,26 +14,7 @@ class ItemCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap:
-            onTap ??
-            () {
-              ScaffoldMessenger.of(context)
-                ..hideCurrentSnackBar()
-                ..showSnackBar(
-                  SnackBar(
-                    content: Text('Kamu telah menekan tombol ${item.name}!'),
-                  ),
-                );
-
-              if (item.name == 'Tambah Proyek') {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ProjectFormPage(),
-                  ),
-                );
-              }
-            },
+        onTap: onTap,
         child: ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 100),
           child: Padding(

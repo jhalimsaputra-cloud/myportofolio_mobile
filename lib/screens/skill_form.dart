@@ -176,7 +176,8 @@ class _SkillFormPageState extends State<SkillFormPage> {
                       ),
                       minLines: 3,
                       maxLines: 5,
-                      validator: (value) => value == null || value.trim().isEmpty
+                      validator: (value) =>
+                          value == null || value.trim().isEmpty
                           ? 'Deskripsi skill wajib diisi.'
                           : null,
                     ),
@@ -185,7 +186,8 @@ class _SkillFormPageState extends State<SkillFormPage> {
                       controller: _imageUrl,
                       decoration: const InputDecoration(
                         labelText: 'URL Gambar (opsional)',
-                        helperText: 'Tempel URL gambar atau link file Google Drive.',
+                        helperText:
+                            'Tempel URL gambar atau link file Google Drive.',
                         helperMaxLines: 2,
                         errorMaxLines: 2,
                         border: border,
