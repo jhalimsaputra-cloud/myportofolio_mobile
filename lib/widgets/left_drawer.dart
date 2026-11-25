@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
+import 'package:myportofolio_mobile/screens/skill_list_screen.dart';
 import 'package:myportofolio_mobile/services/auth_state.dart';
 import 'package:myportofolio_mobile/widgets/auth_guard.dart';
 import 'package:provider/provider.dart';
@@ -10,10 +11,12 @@ class LeftDrawer extends StatelessWidget {
     super.key,
     this.isProjectForm = false,
     this.isSkillForm = false,
+    this.isSkillList = false,
   });
 
   final bool isProjectForm;
   final bool isSkillForm;
+  final bool isSkillList;
 
   Future<void> _openForm(
     BuildContext context, {
@@ -94,6 +97,15 @@ class LeftDrawer extends StatelessWidget {
               isCurrentForm: isProjectForm,
               builder: (_) => const ProjectFormPage(),
               requiresLogin: true,
+            ),
+          ),
+          ListTile(
+            leading: const Icon(Icons.list_alt),
+            title: const Text('Daftar Skill'),
+            onTap: () => _openForm(
+              context,
+              isCurrentForm: isSkillList,
+              builder: (_) => const SkillListScreen(),
             ),
           ),
           ListTile(

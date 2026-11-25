@@ -3,6 +3,7 @@ import 'package:myportofolio_mobile/models/item_homepage.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/screens/project_list_screen.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
+import 'package:myportofolio_mobile/screens/skill_list_screen.dart';
 import 'package:myportofolio_mobile/services/auth_state.dart';
 import 'package:myportofolio_mobile/widgets/auth_guard.dart';
 import 'package:myportofolio_mobile/widgets/info_card.dart';
@@ -32,6 +33,11 @@ class MyHomePage extends StatelessWidget {
   static const _addSkill = ItemHomepage(
     'Tambah Skill',
     Icons.psychology_outlined,
+    Color(0xFF5B21B6),
+  );
+  static const _viewSkills = ItemHomepage(
+    'Lihat Skill',
+    Icons.list_alt,
     Color(0xFF5B21B6),
   );
   static const _logout = ItemHomepage(
@@ -129,6 +135,15 @@ class MyHomePage extends StatelessWidget {
                       ItemCard(
                         item: _addSkill,
                         onTap: () => _openSkillForm(context),
+                      ),
+                      ItemCard(
+                        item: _viewSkills,
+                        onTap: () => Navigator.push<void>(
+                          context,
+                          MaterialPageRoute<void>(
+                            builder: (_) => const SkillListScreen(),
+                          ),
+                        ),
                       ),
                       ItemCard(
                         item: isLoggedIn ? _logout : _login,

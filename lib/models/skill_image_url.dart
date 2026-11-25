@@ -36,3 +36,22 @@ Uri? skillImagePreviewUri(String input) {
       'resourcekey': resourceKey,
   });
 }
+
+/// Resolves both linked images and filenames from the Django static directory.
+Uri? skillImageUri(String input, String apiBaseUrl) {
+  final external = skillImagePreviewUri(input);
+  if (external != null) return external;
+
+  final value = input.trim();
+  final reference = Uri.tryParse(value);
+  if (reference == null || reference.hasScheme || reference.hasAuthority) {
+    return null;
+  }
+  final filename = value.startsWith('img/') ? value.substring(4) : value;
+  final segments = filename.split('/');
+  if (segments.any((part) => part.isEmpty || part == '.' || part == '..')) {
+    return null;
+  }
+  return Uri.parse(apiBaseUrl)
+      .replace(pathSegments: ['static', 'img', ...segments]);
+}

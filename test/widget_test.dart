@@ -204,7 +204,7 @@ void main() {
 
     for (final cardType in [InfoCard, ItemCard]) {
       final cards = find.byType(cardType);
-      final cardCount = cardType == InfoCard ? 3 : 4;
+      final cardCount = cardType == InfoCard ? 3 : 5;
       expect(cards, findsNWidgets(cardCount));
       for (var i = 1; i < cardCount; i++) {
         final previous = tester.getRect(cards.at(i - 1));
