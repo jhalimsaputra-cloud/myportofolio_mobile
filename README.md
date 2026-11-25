@@ -1,6 +1,10 @@
 # MyPortfolio Mobile
 
-Aplikasi Flutter untuk proyek portofolio pribadi pada mata kuliah Pemrograman Berbasis Platform (PBP). Halaman utama menampilkan kartu identitas dan aksi **Lihat Proyek**, **Tambah Proyek**, **Tambah Skill**, serta **Logout**. Kartu **Tambah Skill** dan opsi **Add Skill** di drawer membuka formulir yang menampilkan ringkasan isian dan pratinjau gambar opsional. Tombol **Profil** di AppBar membuka ringkasan nama dan kelas yang bisa disalin.
+[![CI](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/actions/workflows/main.yaml/badge.svg?branch=main)](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/actions/workflows/main.yaml)
+
+Aplikasi Flutter untuk proyek portofolio pribadi pada mata kuliah Pemrograman Berbasis Platform (PBP). Daftar dan detail Skill bisa dibuka tanpa login. Akun yang berizin dapat menambah atau mengedit Skill melalui Django REST Framework (DRF). Formulir mendukung pratinjau gambar opsional.
+
+[Repositori backend Django](https://github.com/jhalimsaputra-cloud/myportofolio) · [API Skill di PWS](https://justin-evan-myportofolio.pws.cs.ui.ac.id/api/v1/skills/)
 
 ## Prasyarat
 
@@ -17,25 +21,39 @@ cd myportofolio_mobile
 flutter --version
 flutter doctor
 flutter pub get
+dart run build_runner build
 flutter devices
 ```
 
-Periksa daftar dari `flutter devices`, lalu jalankan aplikasi di salah satu target yang tersedia. Untuk Chrome, jalankan `flutter run -d chrome`. Untuk Edge, jalankan `flutter run -d edge`. Untuk Android, nyalakan emulator atau sambungkan perangkat, lalu jalankan `flutter run` dan pilih perangkat jika diminta.
+Jalankan ulang `dart run build_runner build` setelah mengubah model JSON. Pada `build_runner` 2.17.1, opsi lama `--delete-conflicting-outputs` sudah dihapus dan diabaikan.
+
+Untuk backend lokal, ikuti setup repositori Django, lalu jalankan `python manage.py migrate` dan `python manage.py runserver` di repo tersebut. Buat akun pengujian lokal melalui `python manage.py createsuperuser` untuk mencoba POST. Editor yang mempunyai izin `main.change_skill` bisa mencoba PATCH. [Setup backend Django](https://github.com/jhalimsaputra-cloud/myportofolio#setup--cara-menjalankan-secara-lokal)
+
+| Target | Perintah dari repo Flutter |
+| --- | --- |
+| Emulator Android dengan Django lokal | `flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000` |
+| Chrome dengan Django lokal | `flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:8000` |
+| Android dengan API PWS | `flutter run --dart-define=API_BASE_URL=https://justin-evan-myportofolio.pws.cs.ui.ac.id` |
+
+Untuk memasang versi release, buka run CI yang lulus untuk commit yang ingin diuji, unduh artefak **app-release-apk**, lalu ekstrak dan pasang `app-release.apk` pada Android. APK dari CI sudah diarahkan ke API PWS melalui `API_BASE_URL`. [GitHub Actions](https://github.com/jhalimsaputra-cloud/myportofolio_mobile/actions/workflows/main.yaml)
 
 ## Analisis dan tes
 
 Jalankan perintah berikut dari folder utama proyek.
 
 ```sh
-flutter analyze
+dart format --output=none --set-exit-if-changed lib test
+flutter analyze lib test
 flutter test
 ```
 
-Target analisis adalah `No issues found!`. Tes widget memeriksa tiga kartu identitas, pesan `SnackBar` untuk aksi proyek dan logout, serta gulir halaman utama pada lebar 320 piksel logis. Untuk Tugas 8, tes mencakup pembukaan form dari kartu dan drawer, navigasi kembali lewat Back dan **Home**, penolakan input wajib yang kosong, serta penampilan dan penutupan dialog ringkasan. Untuk mencoba fitur Profil, buka panel, tekan **Salin profil**, lalu tempel teks ke editor dan cocokkan nama serta kelasnya.
+Suite Flutter mencakup navigasi dan validasi yang sudah ada, request GET tanpa token, serialisasi POST, PATCH yang hanya mengirim field yang berubah, serta pemulihan sesi kedaluwarsa. Tes Django dijalankan dengan `python manage.py test` di repo backend. Suite tersebut menguji token DRF, izin per peran, dan CSRF untuk sesi browser.
 
-Untuk mencoba formulir di Chrome, buka **Tambah Skill** dari kartu dan **Add Skill** dari drawer. Uji tombol **Simpan** dengan kolom wajib kosong, lalu isi nama, tipe, dan deskripsi sampai dialog ringkasan tampil. Coba URL yang tidak valid dan tautan berkas gambar Google Drive yang dapat diakses. Gunakan opsi **Home** di drawer untuk kembali ke halaman utama. Pada viewport sempit, pastikan tombol **Simpan** dapat dijangkau dengan menggulir. Ulangi cek ini di ponsel atau emulator saat papan ketik layar terbuka.
+Untuk memeriksa alur dengan database lokal, buka **Lihat Skill** dari Home atau **Daftar Skill** dari drawer saat belum login. Ketuk satu entri dan periksa detailnya. Isi form **Tambah Skill**, tekan **Simpan**, dan login dengan superuser pengujian. Periksa entri baru di Flutter dan segarkan halaman **Skills** di situs Django. Buka detail dan gunakan **Edit Skill** untuk mencoba PATCH.
 
-Jika tes gagal membaca aset shader yang dihasilkan Flutter, misalnya `ink_sparkle.frag`, bangun ulang cache lokal dengan `flutter clean`, lalu jalankan `flutter pub get` dan `flutter test` kembali.
+Untuk menguji HTTP 401, login di Flutter lalu hapus token akun pengujian melalui Django Admin atau shell Django lokal. Kirim formulir dan periksa bahwa aplikasi meminta login ulang. Isian harus tetap tersedia untuk dikirim kembali. Ulangi dengan akun yang tidak berizin untuk memeriksa pesan 403, lalu uji menu **Logout**.
+
+Jika tes gagal membaca aset shader yang dihasilkan Flutter, misalnya `ink_sparkle.frag`, bangun ulang cache dengan `flutter clean`, jalankan ulang `flutter pub get` dan generator JSON, lalu coba lagi.
 
 ## Referensi Flutter
 
@@ -143,3 +161,39 @@ Berikut adalah detail penyesuaian dan perbaikan yang saya lakukan dengan bantuan
 
 Link percakapan:
 https://share.gemini.google/bJU4orpUzVVn
+
+### Assignment 9
+
+1. **Model JSON bertipe.** `Skill` memberi widget tipe Dart untuk nama, deskripsi, kategori, dan metadata. `FieldRename.snake` menerjemahkan `skillType` dan `imageFilename` ke `skill_type` dan `image_filename`, sesuai serializer DRF. Contoh bug yang dicegah adalah form mengirim `skillType` secara manual sehingga Django menganggap field wajib `skill_type` belum diisi dan menolak POST dengan HTTP 400. `@JsonKey(includeToJson: false)` memungkinkan model membaca UUID dan metadata bintang dari respons, sekaligus mengeluarkan field yang dikelola server dari payload tulis. Tes memeriksa body POST dan PATCH untuk memastikan aturan ini.
+2. **Siklus hidup Future dan error HTTP.** `initState()` membuat satu request awal per instans layar. `build()` dapat berjalan lagi, misalnya setelah perubahan tema atau sesi, sehingga membuat `Future` di sana dapat mengulang GET dan menampilkan loading berkali-kali. Aksi Retry dan pull-to-refresh secara sengaja mengganti Future. `ApiException` membawa status HTTP sehingga layar dapat membedakan sesi invalid (401), akun tanpa izin (403), dan data ditolak (400). `null` akan menghilangkan informasi tersebut dan mudah tercampur dengan respons sukses yang tidak memiliki entri.
+3. **Autentikasi dan izin.** `SessionAuthentication` membaca sesi Django dari cookie yang biasa dikirim browser. Mutasi melalui sesi harus memenuhi pemeriksaan CSRF. `TokenAuthentication` membaca `Authorization: Token <key>` yang dikirim Flutter setelah login, dan Django mencocokkannya dengan token yang tersimpan di server. Ini memberi Flutter jalur autentikasi tanpa mengelola cookie sesi dan token CSRF browser. Django tetap menyediakan autentikasi sesi untuk situs dan Browsable API. Kedua mekanisme memakai izin server yang sama. Jika token dicabut, Flutter menghapus token lokal dan meminta login ulang. [Autentikasi DRF](https://www.django-rest-framework.org/api-guide/authentication/)
+4. **Job CI dan kode generasi.** Job `build` memakai `very_good_workflows` untuk memasang Flutter dan dependensi, menjalankan setup yang membangkitkan serializer, memeriksa format, menjalankan analyzer, dan menjalankan tes beserta laporan cakupan. Setelah lulus, `build_apk` menyiapkan Flutter dan Java 17 di runner sendiri, memasang dependensi, membangkitkan serializer lagi, membuat APK release dengan URL PWS, dan mengunggahnya. `*.g.dart` diabaikan Git karena bisa dibangkitkan kembali dari model dan versi dependensi. Checkout CI tetap menyediakannya untuk analisis yang membutuhkan deklarasi tersebut, pengujian, dan kompilasi. [Workflow Flutter reusable](https://github.com/VeryGoodOpenSource/very_good_workflows/blob/v2/.github/workflows/flutter_package.yml)
+
+#### 🤖 AI Disclosure
+
+Dalam pengerjaan tugas ini, saya menggunakan bantuan **Gemini Hydrogen** untuk menelaah berkas spesifikasi PDF Tugas 9 terhadap basis kode proyek, merancang struktur model serialisasi JSON (`Skill`), menyusun draf awal integrasi *endpoint* `GET` dan `POST` pada `ApiClient`, menyusun kerangka tampilan daftar (*List Screen*) dan detail (*Detail Screen*), menulis draf pengujian otomatis berbasis `MockClient`, serta menyusun draf `README.md`. Saya menentukan batas arsitektur, menyesuaikan setiap bagian dengan kode aplikasi (`myportofolio_mobile`) dan backend Django (`myportofolio`), serta melakukan verifikasi baik melalui tes otomatis maupun pengujian langsung terhadap backend Django lokal.
+
+Berikut adalah detail penyesuaian dan perbaikan yang saya lakukan terhadap keluaran AI:
+
+1. **Penyesuaian model `Skill` dan penanganan gambar opsional dengan backend Django**
+   - **Output AI:** Draf awal menyertakan *field* generik (`category` dan `proficiency`) tanpa URL gambar. Selanjutnya, pada draf integrasi awal, pemetaan URL gambar dari formulir Flutter ke serializer Django belum menangani perbedaan aturan kolom opsional antara sisi Flutter (URL gambar boleh kosong) dan skema/validasi backend Django.
+   - **Perbaikan:** Saya menyelaraskan atribut model `lib/models/skill.dart` (`@JsonSerializable(fieldRename: FieldRename.snake)` dan `@JsonKey(includeToJson: false)` pada `id`) agar sesuai dengan `SkillSerializer` pada backend Django serta mempertahankan validasi URL gambar dari Tugas 8 melalui `lib/models/skill_image_url.dart`, sehingga entri tanpa URL gambar tetap dapat dikirim dan diproses dengan bersih.
+
+2. **Alur autentikasi pada formulir serta penempatan tampilan gambar dan navigasi**
+   - **Output AI:** Draf awal mengunci pembukaan formulir sejak awal, mengganti formulir Tugas 8 dengan *input* angka kemahiran baru, menampilkan teks datar pada layar detail, dan memasang `LeftDrawer` langsung pada halaman daftar.
+   - **Perbaikan:** Saya mempertahankan `SkillFormPage` (`lib/screens/skill_form.dart`) beserta *live preview* dengan *debounce* 350 milidetik, serta menerapkan pemeriksaan login melalui `ensureLoggedIn(context)` saat pengguna menekan tombol **Simpan** dan input dinyatakan valid (sehingga formulir tetap dapat dibuka terlebih dahulu sebelum login). Komponen `SkillImage` (`lib/widgets/skill_image.dart`) ditampilkan pada formulir dan layar detail (`lib/screens/skill_detail_screen.dart`), sedangkan layar daftar (`lib/screens/skill_list_screen.dart`) menampilkan ringkasan teks. Navigasi dihubungkan melalui kartu aksi **Lihat Skill** di halaman utama (`lib/screens/menu.dart`) dan menu **Daftar Skill** di `lib/widgets/left_drawer.dart`.
+
+3. **Penyegaran daftar setelah penyimpanan data (`SkillListScreen`)**
+   - **Output AI:** Implementasi awal transisi setelah penyimpanan formulir belum memicu pembaruan `Future` daftar secara konsisten ketika pengguna kembali ke `SkillListScreen`.
+   - **Perbaikan:** Melalui pengujian otomatis di `test/widget_test.dart`, saya menemukan bahwa daftar skill tidak otomatis menyegarkan data setelah entri baru berhasil disimpan. Saya memperbaiki nilai kembalian navigasi dari `SkillFormPage` dan pemanggilan ulang `_refreshSkills()` di `SkillListScreen` sehingga entri yang baru dibuat langsung muncul tanpa perlu *pull-to-refresh* manual.
+
+4. **Penambahan `API_BASE_URL` produksi pada pipeline GitHub Actions (`.github/workflows/main.yaml`)**
+   - **Output AI:** Workflow bawaan dari Tutorial 10 sudah menggunakan `very_good_workflows` (`flutter_package.yml@v2`), Java 17, versi Flutter `3.47.9`, *concurrency*, *cache*, serta pemeriksaan artefak, tetapi perintah `flutter build apk --release` belum menyertakan alamat backend yang di-deploy.
+   - **Perbaikan:** Saya menambahkan variabel lingkungan `API_BASE_URL: https://justin-evan-myportofolio.pws.cs.ui.ac.id` dan meneruskannya melalui flag `--dart-define="API_BASE_URL=$API_BASE_URL"` pada langkah *build* APK *release* agar artefak `app-release-apk` langsung terhubung ke server PWS.
+
+5. **Penambahan pengujian otomatis dengan `MockClient` dan verifikasi end-to-end lokal**
+   - **Output AI:** Draf awal tidak menyertakan skenario pengujian terisolasi untuk lapisan jaringan dan penanganan status HTTP `401`.
+   - **Perbaikan:** Saya menambahkan pengujian otomatis pada `test/skill_integration_test.dart` dan memperbarui `test/widget_test.dart` menggunakan `MockClient` untuk memverifikasi pembacaan daftar & detail publik, pemeriksaan login saat menekan **Simpan**, pengiriman `POST` dengan *header* `Authorization: Token <key>`, serta penghapusan sesi pada galat `401`. Seluruh rangkaian tes berjalan otomatis di GitHub Actions, dan saya juga memverifikasi penyimpanan data dari antarmuka Flutter hingga basis data melalui server Django lokal.
+
+   Link percakapan:
+   https://share.gemini.google/8z7nKgVzLGXD
