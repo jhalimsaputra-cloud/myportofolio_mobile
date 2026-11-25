@@ -24,7 +24,9 @@ class _SkillListScreenState extends State<SkillListScreen> {
 
   Future<void> _reload() async {
     final request = context.read<ApiClient>().getSkills();
-    setState(() => _skills = request);
+    setState(() {
+      _skills = request;
+    });
     try {
       await request;
     } catch (_) {
