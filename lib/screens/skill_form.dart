@@ -1,30 +1,46 @@
 import 'dart:async';
 
 import 'package:material_ui/material_ui.dart';
+import 'package:myportofolio_mobile/models/skill.dart';
 import 'package:myportofolio_mobile/models/skill_image_url.dart';
+import 'package:myportofolio_mobile/services/api_client.dart';
+import 'package:myportofolio_mobile/services/auth_state.dart';
+import 'package:myportofolio_mobile/widgets/auth_guard.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 import 'package:myportofolio_mobile/widgets/skill_image.dart';
+import 'package:provider/provider.dart';
 
 class SkillFormPage extends StatefulWidget {
-  const SkillFormPage({super.key});
+  const SkillFormPage({super.key, this.skill, this.showDrawer = true});
+
+  final Skill? skill;
+  final bool showDrawer;
 
   @override
   State<SkillFormPage> createState() => _SkillFormPageState();
 }
 
 class _SkillFormPageState extends State<SkillFormPage> {
-  static const _typeLabels = {
-    'Software': 'Software Development',
-    'Systems': 'Systems & Architecture',
-  };
-
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _description = TextEditingController();
   final _imageUrl = TextEditingController();
   Timer? _previewTimer;
   Uri? _livePreviewUri;
-  String? _skillType;
+  SkillType? _skillType;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final skill = widget.skill;
+    if (skill == null) return;
+    _name.text = skill.name;
+    _description.text = skill.description;
+    _imageUrl.text = skill.imageFilename;
+    _skillType = skill.skillType;
+    _livePreviewUri = _previewUri(skill.imageFilename);
+  }
 
   @override
   void dispose() {
@@ -37,7 +53,7 @@ class _SkillFormPageState extends State<SkillFormPage> {
 
   void _updateImagePreview(String value) {
     _previewTimer?.cancel();
-    final previewUri = skillImagePreviewUri(value);
+    final previewUri = _previewUri(value.trim());
     if (previewUri == _livePreviewUri) return;
 
     if (previewUri == null) {
@@ -50,60 +66,86 @@ class _SkillFormPageState extends State<SkillFormPage> {
     });
   }
 
-  void _showSummary() {
+  Uri? _previewUri(String value) {
+    if (value.isNotEmpty && value == widget.skill?.imageFilename) {
+      return skillImageUri(value, context.read<ApiClient>().baseUrl);
+    }
+    return skillImagePreviewUri(value);
+  }
+
+  String? _imageForServer(String value) {
+    if (value.isEmpty || value == widget.skill?.imageFilename) return value;
+    return skillImagePreviewUri(value)?.toString();
+  }
+
+  Future<void> _submit() async {
     final form = _formKey.currentState;
-    if (form == null || !form.validate()) return;
+    if (_isSubmitting || form == null || !form.validate()) return;
 
     FocusScope.of(context).unfocus();
-    final name = _name.text.trim();
-    final description = _description.text.trim();
-    final imageUrl = _imageUrl.text.trim();
-    final typeLabel = _typeLabels[_skillType]!;
-
-    form.reset();
-    _name.clear();
-    _description.clear();
-    _imageUrl.clear();
-    _previewTimer?.cancel();
-    setState(() {
-      _skillType = null;
-      _livePreviewUri = null;
-    });
-
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Skill telah Ditambahkan'),
-        scrollable: true,
-        content: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (imageUrl.isNotEmpty) ...[
-              SkillImage(previewUri: skillImagePreviewUri(imageUrl)),
-              const SizedBox(height: 16),
-            ],
-            SelectableText('Nama Skill: $name'),
-            const SizedBox(height: 8),
-            Text('Tipe Skill: $typeLabel'),
-            const SizedBox(height: 8),
-            SelectableText('Deskripsi: $description'),
-            const SizedBox(height: 8),
-            SelectableText(
-              imageUrl.isEmpty
-                  ? 'URL Gambar: Tidak diisi'
-                  : 'URL Gambar: $imageUrl',
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Tutup'),
-          ),
-        ],
-      ),
+    final draft = Skill(
+      name: _name.text.trim(),
+      skillType: _skillType!,
+      description: _description.text.trim(),
+      imageFilename: _imageForServer(_imageUrl.text.trim())!,
     );
+    final auth = context.read<AuthState>();
+    final api = context.read<ApiClient>();
+    final original = widget.skill;
+    setState(() => _isSubmitting = true);
+    String? token;
+    Skill? saved;
+
+    try {
+      if (!await ensureLoggedIn(context) || !mounted) return;
+      token = auth.token;
+      if (token == null) return;
+      saved = original == null
+          ? await api.createSkill(draft, token: token)
+          : await api.updateSkill(original, draft, token: token);
+    } on ApiException catch (error) {
+      if (error.statusCode == 401 && token != null) {
+        auth.clearRejectedToken(token);
+      }
+      if (!mounted) return;
+      if (error.statusCode == 401) {
+        _showMessage('Sesi berakhir. Silakan login kembali, lalu simpan lagi.');
+        await ensureLoggedIn(context);
+      } else {
+        _showMessage(switch (error.statusCode) {
+          400 => 'Data skill ditolak. Periksa kembali isian.',
+          403 => 'Akun ini tidak memiliki izin untuk menyimpan skill.',
+          404 => 'Skill ini sudah tidak tersedia.',
+          _ => 'Gagal menyimpan skill (${error.statusCode}). Coba lagi.',
+        });
+      }
+    } on FormatException {
+      if (mounted) _showUnreadableResponse();
+    } on TypeError {
+      if (mounted) _showUnreadableResponse();
+    } on Exception {
+      if (mounted) _showMessage('Gagal terhubung ke server. Coba lagi.');
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+
+    if (!mounted || saved == null) return;
+    _showMessage(
+      original == null
+          ? 'Skill berhasil ditambahkan.'
+          : 'Skill berhasil diperbarui.',
+    );
+    Navigator.of(context).pop(saved);
+  }
+
+  void _showUnreadableResponse() {
+    _showMessage('Respons server tidak dapat dibaca. Periksa daftar skill.');
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -113,11 +155,13 @@ class _SkillFormPageState extends State<SkillFormPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Tambah Skill'),
+        title: Text(widget.skill == null ? 'Tambah Skill' : 'Edit Skill'),
         backgroundColor: colorScheme.primary,
         foregroundColor: colorScheme.onPrimary,
       ),
-      drawer: const LeftDrawer(isSkillForm: true),
+      drawer: widget.showDrawer && widget.skill == null
+          ? const LeftDrawer(isSkillForm: true)
+          : null,
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -132,6 +176,7 @@ class _SkillFormPageState extends State<SkillFormPage> {
                   children: [
                     TextFormField(
                       controller: _name,
+                      enabled: !_isSubmitting,
                       decoration: const InputDecoration(
                         labelText: 'Nama Skill',
                         hintText: 'Contoh: Flutter',
@@ -148,27 +193,30 @@ class _SkillFormPageState extends State<SkillFormPage> {
                       },
                     ),
                     const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
+                    DropdownButtonFormField<SkillType>(
+                      initialValue: _skillType,
                       isExpanded: true,
                       decoration: const InputDecoration(
                         labelText: 'Tipe Skill',
                         border: border,
                       ),
                       items: [
-                        for (final type in _typeLabels.entries)
+                        for (final type in SkillType.values)
                           DropdownMenuItem(
-                            value: type.key,
-                            child: Text(type.value),
+                            value: type,
+                            child: Text(type.label),
                           ),
                       ],
-                      onChanged: (value) => _skillType = value,
-                      validator: (value) => _typeLabels.containsKey(value)
+                      onChanged: _isSubmitting
                           ? null
-                          : 'Pilih tipe skill.',
+                          : (value) => _skillType = value,
+                      validator: (value) =>
+                          value == null ? 'Pilih tipe skill.' : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _description,
+                      enabled: !_isSubmitting,
                       decoration: const InputDecoration(
                         labelText: 'Deskripsi Skill',
                         alignLabelWithHint: true,
@@ -184,6 +232,7 @@ class _SkillFormPageState extends State<SkillFormPage> {
                     const SizedBox(height: 16),
                     TextFormField(
                       controller: _imageUrl,
+                      enabled: !_isSubmitting,
                       decoration: const InputDecoration(
                         labelText: 'URL Gambar (opsional)',
                         helperText:
@@ -196,10 +245,14 @@ class _SkillFormPageState extends State<SkillFormPage> {
                       autocorrect: false,
                       onChanged: _updateImagePreview,
                       validator: (value) {
-                        if (value == null || value.trim().isEmpty) return null;
-                        return skillImagePreviewUri(value) == null
-                            ? 'Masukkan URL gambar atau link file Drive yang valid.'
-                            : null;
+                        final image = _imageForServer(value?.trim() ?? '');
+                        if (image == null) {
+                          return 'Masukkan URL gambar atau link file Drive yang valid.';
+                        }
+                        if (image.runes.length > 200) {
+                          return 'URL gambar maksimal 200 karakter.';
+                        }
+                        return null;
                       },
                     ),
                     if (_livePreviewUri != null) ...[
@@ -211,8 +264,16 @@ class _SkillFormPageState extends State<SkillFormPage> {
                     ],
                     const SizedBox(height: 24),
                     FilledButton(
-                      onPressed: _showSummary,
-                      child: const Text('Simpan'),
+                      onPressed: _isSubmitting ? null : _submit,
+                      child: _isSubmitting
+                          ? const SizedBox.square(
+                              dimension: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                semanticsLabel: 'Menyimpan skill',
+                              ),
+                            )
+                          : const Text('Simpan'),
                     ),
                   ],
                 ),

@@ -16,6 +16,12 @@ class AuthState extends ChangeNotifier {
     notifyListeners();
   }
 
+  void clearRejectedToken(String rejectedToken) {
+    if (_token != rejectedToken) return;
+    _token = null;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     final current = _token;
     if (current == null) return;

@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:myportofolio_mobile/models/skill.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
 import 'package:myportofolio_mobile/screens/skill_list_screen.dart';
@@ -12,11 +13,13 @@ class LeftDrawer extends StatelessWidget {
     this.isProjectForm = false,
     this.isSkillForm = false,
     this.isSkillList = false,
+    this.onAddSkill,
   });
 
   final bool isProjectForm;
   final bool isSkillForm;
   final bool isSkillList;
+  final VoidCallback? onAddSkill;
 
   Future<void> _openForm(
     BuildContext context, {
@@ -38,6 +41,29 @@ class LeftDrawer extends StatelessWidget {
     } else {
       navigator.push<void>(route);
     }
+  }
+
+  Future<void> _openSkillForm(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    navigator.pop();
+    if (isSkillForm) return;
+
+    final addFromList = onAddSkill;
+    if (addFromList != null) {
+      addFromList();
+      return;
+    }
+
+    final route = MaterialPageRoute<Skill>(
+      builder: (_) => const SkillFormPage(),
+    );
+    final saved = isProjectForm
+        ? await navigator.pushReplacement<Skill, void>(route)
+        : await navigator.push<Skill>(route);
+    if (saved == null || !navigator.mounted) return;
+    navigator.push<void>(
+      MaterialPageRoute<void>(builder: (_) => const SkillListScreen()),
+    );
   }
 
   @override
@@ -111,11 +137,7 @@ class LeftDrawer extends StatelessWidget {
           ListTile(
             leading: const Icon(Icons.psychology_outlined),
             title: const Text('Add Skill'),
-            onTap: () => _openForm(
-              context,
-              isCurrentForm: isSkillForm,
-              builder: (_) => const SkillFormPage(),
-            ),
+            onTap: () => _openSkillForm(context),
           ),
           ListTile(
             leading: Icon(isLoggedIn ? Icons.logout : Icons.login),

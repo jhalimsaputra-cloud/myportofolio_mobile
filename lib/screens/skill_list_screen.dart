@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/skill.dart';
 import 'package:myportofolio_mobile/screens/skill_detail_screen.dart';
+import 'package:myportofolio_mobile/screens/skill_form.dart';
 import 'package:myportofolio_mobile/services/api_client.dart';
 import 'package:myportofolio_mobile/widgets/left_drawer.dart';
 import 'package:provider/provider.dart';
@@ -26,18 +27,37 @@ class _SkillListScreenState extends State<SkillListScreen> {
     setState(() => _skills = request);
     try {
       await request;
-    } on Exception {
+    } catch (_) {
       // FutureBuilder displays the failure.
-    } on TypeError {
-      // An invalid server response also appears in FutureBuilder.
     }
+  }
+
+  Future<void> _createSkill() async {
+    final created = await Navigator.of(context).push<Skill>(
+      MaterialPageRoute<Skill>(
+        builder: (_) => const SkillFormPage(showDrawer: false),
+      ),
+    );
+    if (created != null && mounted) await _reload();
+  }
+
+  Future<void> _showDetail(Skill skill) async {
+    final updated = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(builder: (_) => SkillDetailScreen(skill: skill)),
+    );
+    if (updated == true && mounted) await _reload();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Daftar Skill')),
-      drawer: const LeftDrawer(isSkillList: true),
+      drawer: LeftDrawer(isSkillList: true, onAddSkill: _createSkill),
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'Tambah Skill',
+        onPressed: _createSkill,
+        child: const Icon(Icons.add),
+      ),
       body: FutureBuilder<List<Skill>>(
         future: _skills,
         builder: (context, snapshot) {
@@ -87,7 +107,7 @@ class _SkillListScreenState extends State<SkillListScreen> {
                   )
                 : ListView.builder(
                     physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 80),
                     itemCount: skills.length,
                     itemBuilder: (context, index) {
                       final skill = skills[index];
@@ -100,11 +120,7 @@ class _SkillListScreenState extends State<SkillListScreen> {
                             overflow: TextOverflow.ellipsis,
                           ),
                           trailing: const Icon(Icons.chevron_right),
-                          onTap: () => Navigator.of(context).push<void>(
-                            MaterialPageRoute<void>(
-                              builder: (_) => SkillDetailScreen(skill: skill),
-                            ),
-                          ),
+                          onTap: () => _showDetail(skill),
                         ),
                       );
                     },

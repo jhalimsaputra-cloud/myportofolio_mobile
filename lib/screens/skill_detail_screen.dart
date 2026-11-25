@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/skill.dart';
 import 'package:myportofolio_mobile/models/skill_image_url.dart';
+import 'package:myportofolio_mobile/screens/skill_form.dart';
 import 'package:myportofolio_mobile/services/api_client.dart';
 import 'package:myportofolio_mobile/widgets/skill_image.dart';
 import 'package:provider/provider.dart';
@@ -9,6 +10,13 @@ class SkillDetailScreen extends StatelessWidget {
   const SkillDetailScreen({super.key, required this.skill});
 
   final Skill skill;
+
+  Future<void> _edit(BuildContext context) async {
+    final updated = await Navigator.of(context).push<Skill>(
+      MaterialPageRoute<Skill>(builder: (_) => SkillFormPage(skill: skill)),
+    );
+    if (updated != null && context.mounted) Navigator.of(context).pop(true);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +39,17 @@ class SkillDetailScreen extends StatelessWidget {
     final labelStyle = Theme.of(context).textTheme.titleSmall;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail Skill')),
+      appBar: AppBar(
+        title: const Text('Detail Skill'),
+        actions: [
+          if (skill.id != null)
+            IconButton(
+              tooltip: 'Edit Skill',
+              onPressed: () => _edit(context),
+              icon: const Icon(Icons.edit_outlined),
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Center(
           child: ConstrainedBox(

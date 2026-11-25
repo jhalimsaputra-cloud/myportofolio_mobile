@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/models/item_homepage.dart';
+import 'package:myportofolio_mobile/models/skill.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/screens/project_list_screen.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
@@ -55,10 +56,15 @@ class MyHomePage extends StatelessWidget {
     );
   }
 
-  void _openSkillForm(BuildContext context) {
+  Future<void> _openSkillForm(BuildContext context) async {
+    final created = await Navigator.push<Skill>(
+      context,
+      MaterialPageRoute<Skill>(builder: (_) => const SkillFormPage()),
+    );
+    if (created == null || !context.mounted) return;
     Navigator.push<void>(
       context,
-      MaterialPageRoute<void>(builder: (_) => const SkillFormPage()),
+      MaterialPageRoute<void>(builder: (_) => const SkillListScreen()),
     );
   }
 

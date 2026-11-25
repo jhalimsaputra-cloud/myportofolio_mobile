@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:myportofolio_mobile/main.dart';
+import 'package:myportofolio_mobile/models/skill.dart';
 import 'package:myportofolio_mobile/screens/login_screen.dart';
 import 'package:myportofolio_mobile/screens/project_form.dart';
 import 'package:myportofolio_mobile/screens/skill_form.dart';
@@ -256,7 +257,7 @@ void main() {
     expect(find.text('MyPortfolio'), findsOneWidget);
   });
 
-  testWidgets('validates the skill form before showing its summary', (
+  testWidgets('validates a skill before asking for login and keeps its draft', (
     tester,
   ) async {
     await tester.pumpWidget(_testApp());
@@ -275,7 +276,7 @@ void main() {
     final fields = find.byType(TextFormField);
     await tester.ensureVisible(fields.at(0));
     await tester.enterText(fields.at(0), 'Flutter');
-    final skillType = find.byType(DropdownButtonFormField<String>);
+    final skillType = find.byType(DropdownButtonFormField<SkillType>);
     await tester.ensureVisible(skillType);
     await tester.tap(skillType);
     await tester.pumpAndSettle();
@@ -307,20 +308,26 @@ void main() {
     await tester.tap(save);
     await tester.pumpAndSettle();
 
-    expect(find.text('Skill telah Ditambahkan'), findsOneWidget);
-    expect(find.text('Nama Skill: Flutter'), findsOneWidget);
-    expect(find.text('Tipe Skill: Software Development'), findsOneWidget);
-    expect(find.text('Deskripsi: Membuat aplikasi mobile'), findsOneWidget);
-    expect(find.text('URL Gambar: $validImageUrl'), findsOneWidget);
-    await tester.tap(find.text('Tutup'));
+    expect(find.byType(LoginScreen), findsOneWidget);
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
     expect(find.byType(SkillFormPage), findsOneWidget);
-    for (final field in tester.widgetList<TextFormField>(fields)) {
-      expect(field.controller!.text, isEmpty);
-    }
-    expect(tester.state<FormFieldState<String>>(skillType).value, isNull);
-    expect(find.byType(SkillImage), findsNothing);
+    expect(
+      tester.widget<TextFormField>(fields.first).controller!.text,
+      'Flutter',
+    );
+    expect(
+      tester.widget<TextFormField>(fields.at(1)).controller!.text,
+      'Membuat aplikasi mobile',
+    );
+    expect(
+      tester.widget<TextFormField>(imageUrl).controller!.text,
+      validImageUrl,
+    );
+    expect(
+      tester.state<FormFieldState<SkillType>>(skillType).value,
+      SkillType.software,
+    );
   });
 
   testWidgets('previews a shared Drive URL and handles a failed image load', (
